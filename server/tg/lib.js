@@ -29,6 +29,7 @@ export const { computeCheck } = require('teleproto/Password');
 export const { HTMLParser } = require('teleproto/extensions/html');
 export const { CustomFile } = require('teleproto/client/uploads');
 export const { LAYER } = require('teleproto/tl/runtime/registry');
+export const { UpdateConnectionState } = require('teleproto/network');
 export const definitions = require('teleproto/tl/generated/api-definitions.js');
 export const bigInt = require('big-integer');
 export const TELEPROTO_VERSION = teleproto.version;

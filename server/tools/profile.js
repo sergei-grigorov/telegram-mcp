@@ -69,7 +69,7 @@ export default function profileTools(services) {
       ),
       handler: async (args) => {
         const acc = await account(services, args, 'profile');
-        const u = await chat(services, acc, args.user);
+        const u = await chat(services, acc, args.user, { track: false });
         if (!(u.entity instanceof Api.User) || u.entity.self) throw new ToolError('Expected another user.');
         const inputUser = new Api.InputUser({ userId: u.input.userId, accessHash: u.input.accessHash });
         policy.takeActions(acc.name);

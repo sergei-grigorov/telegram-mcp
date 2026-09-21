@@ -93,7 +93,7 @@ export default function adminTools(services) {
 
   async function userInput(acc, ref) {
     if (ref === undefined || ref === null || ref === '') throw new ToolError('"user" is required for this action.');
-    const u = await chat(services, acc, ref);
+    const u = await chat(services, acc, ref, { track: false });
     if (!(u.entity instanceof Api.User)) throw new ToolError(`${chatRef(u.entity).title} is not a user.`);
     return u;
   }
@@ -286,7 +286,7 @@ export default function adminTools(services) {
         const acc = await account(services, args, 'admin');
         const users = [];
         for (const ref of args.users ?? []) {
-          const u = await chat(services, acc, ref);
+          const u = await chat(services, acc, ref, { track: false });
           if (!(u.entity instanceof Api.User)) throw new ToolError(`${chatRef(u.entity).title} is not a user.`);
           users.push(u);
         }

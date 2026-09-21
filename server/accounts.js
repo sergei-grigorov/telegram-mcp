@@ -1,5 +1,7 @@
 // Аккаунты Telegram: выбор, подключение по требованию, кэш сущностей.
 
+import { EventEmitter } from 'node:events';
+
 import { ToolError } from './mcp.js';
 import { accountKey, AccountStore, FileSession, validAccountName } from './store.js';
 import { isRpcError, rpcCode, toToolError } from './tg/errors.js';
@@ -120,8 +122,13 @@ export class AccountContext {
   }
 }
 
-export class AccountManager {
+// События (для подписок на сообщения): 'connect' (ctx) — аккаунт подключён;
+// 'disconnect' ({ name, ctx }) — подключение закрыто (вход заново, сессия сменилась
+// в другом процессе); 'logout' ({ name, code }) — сессия недействительна;
+// 'remove' ({ name }) — аккаунт удалён.
+export class AccountManager extends EventEmitter {
   constructor({ config, logger, createClient, store }) {
+    super();
     this.config = config;
     this.logger = logger;
     this.createClient = createClient;
@@ -247,6 +254,7 @@ export class AccountManager {
       this.contexts.set(accountKey(name), ctx);
       this.broken.delete(accountKey(name));
       this.logger.info(`аккаунт ${data.name} подключён (id ${info.id})`);
+      this.emit('connect', ctx);
       return ctx;
     } catch (err) {
       session.detach();
@@ -285,8 +293,9 @@ export class AccountManager {
     const ctx = this.contexts.get(key);
     if (failed && ctx !== failed) return;
     this.broken.set(key, code ?? 'logged out');
+    if (ctx) this.contexts.delete(key);
+    this.emit('logout', { name: ctx?.name ?? name, code });
     if (!ctx) return;
-    this.contexts.delete(key);
     ctx.session.detach();
     await ctx.client.destroy().catch(() => {});
     this.logger.warn(`аккаунт ${name}: сессия недействительна (${code})`);
@@ -386,6 +395,7 @@ export class AccountManager {
     await this.disconnect(a.name, { flush: false });
     this.store.remove(a.name);
     this.broken.delete(accountKey(a.name));
+    this.emit('remove', { name: a.name });
     return { name: a.name, loggedOut };
   }
 
@@ -396,6 +406,7 @@ export class AccountManager {
     this.contexts.delete(key);
     if (flush) ctx.session.flush();
     ctx.session.detach();
+    this.emit('disconnect', { name: ctx.name, ctx });
     await ctx.client.destroy().catch(() => {});
   }
 

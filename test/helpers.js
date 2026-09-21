@@ -8,6 +8,7 @@ import path from 'node:path';
 import { createServer } from '../server/index.js';
 import { silentLogger } from '../server/log.js';
 import { AccountStore } from '../server/store.js';
+import { markedIdString } from '../server/tg/format.js';
 import { Api, bigInt } from '../server/tg/lib.js';
 
 export { silentLogger };
@@ -61,6 +62,38 @@ export class FakeClient {
     this.calls = [];
     this.sent = [];
     this.connected = false;
+    this.eventHandlers = [];
+    this.watched = [];
+    this.caughtUp = 0;
+    // Как client.updates в teleproto: watch держит каналы «открытыми».
+    this.updates = {
+      watch: (chats) => {
+        const entry = { chats, stopped: false };
+        this.watched.push(entry);
+        return () => {
+          entry.stopped = true;
+        };
+      },
+    };
+  }
+
+  // Обновления, как в teleproto: обработчик без фильтра получает сырые объекты, а
+  // пользователи и чаты из того же пакета лежат в update._entities.
+  addEventHandler(fn) {
+    this.eventHandlers.push(fn);
+  }
+
+  removeEventHandler(fn) {
+    this.eventHandlers = this.eventHandlers.filter((h) => h !== fn);
+  }
+
+  async emit(update, entities = []) {
+    update._entities = new Map(entities.map((e) => [markedIdString(e), e]));
+    for (const h of [...this.eventHandlers]) await h(update);
+  }
+
+  async catchUp() {
+    this.caughtUp++;
   }
 
   async connect() {

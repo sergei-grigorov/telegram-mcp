@@ -10,6 +10,7 @@ import { createLogger, guardStdout } from './log.js';
 import { LoginServer, openBrowser } from './login/web.js';
 import { McpServer } from './mcp.js';
 import { CAPABILITIES, Policy } from './policy.js';
+import { MessageSubscriptions } from './stream/subscriptions.js';
 import { createTelegramClient } from './tg/client.js';
 import { buildTools, unavailableTools } from './tools/index.js';
 import { VERSION } from './version.js';
@@ -47,6 +48,7 @@ export function buildInstructions(services) {
     '- Chats are referenced by id from results (e.g. -1001234567890), @username, t.me link, "me" (Saved Messages) or exact title. list_chats shows the chat list with unread counters; search_chats finds new chats.',
     '- Messages are returned oldest→newest with Markdown text; page back with next_offset_id → offset_id.',
     '- Bots: send a message, start_bot or press_button, then get_messages with min_id and wait_seconds to get the reply.',
+    '- New messages as they arrive: subscribe_to_messages gives a local WebSocket URL for the Monitor tool (Claude Code); each event is a JSON batch of new messages. New messages in a subscribed chat that arrive while you work with it are added to tool results as arrived_meanwhile.',
     '- download_media shows photos to you and saves files to disk.',
     config.transcription.enabled
       ? '- Voice messages, round videos and audio: transcribe_voice turns them into text.'
@@ -65,7 +67,8 @@ export function createServer({ env = process.env, argv = process.argv.slice(2), 
   const accounts = new AccountManager({ config, logger: log, createClient: clientFactory });
   const policy = new Policy(config);
   const login = new LoginServer({ config, accounts, createClient: clientFactory, logger: log });
-  const services = { config, logger: log, accounts, policy, login, openUrl: openUrl ?? openBrowser };
+  const stream = new MessageSubscriptions({ config, accounts, policy, logger: log });
+  const services = { config, logger: log, accounts, policy, login, stream, openUrl: openUrl ?? openBrowser };
   const tools = buildTools(services);
   const server = new McpServer({
     info: { name: 'telegram', title: 'Telegram', version: VERSION },
@@ -90,7 +93,7 @@ if (isMain()) {
   const bootLogger = createLogger({ level: (process.env.TELEGRAM_LOG_LEVEL || 'info').toLowerCase() });
   guardStdout(bootLogger);
   const { server, services, tools, config } = createServer({ logger: bootLogger });
-  const { logger, accounts, login } = services;
+  const { logger, accounts, login, stream } = services;
   const on = Object.entries(config.permissions)
     .filter(([, v]) => v)
     .map(([k]) => k);
@@ -114,6 +117,8 @@ if (isMain()) {
     if (stopping) return;
     stopping = true;
     setTimeout(() => process.exit(0), 3000).unref();
+    // Мониторам — кадр close с причиной: модель поймёт, что подписаться нужно заново.
+    await stream.stop().catch(() => {});
     await login.stop().catch(() => {});
     await accounts.shutdown().catch(() => {});
     process.exit(0);

@@ -15,6 +15,7 @@ export const TOOL = {
   leaveChat: 'leave_chat',
   getMessages: 'get_messages',
   searchMessages: 'search_messages',
+  subscribe: 'subscribe_to_messages',
   sendMessage: 'send_message',
   editMessage: 'edit_message',
   forwardMessages: 'forward_messages',

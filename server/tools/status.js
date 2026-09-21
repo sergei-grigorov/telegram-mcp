@@ -9,7 +9,7 @@ import { VERSION } from '../version.js';
 import { reply, schema } from './common.js';
 
 export default function statusTools(services) {
-  const { config, accounts, policy, login, logger } = services;
+  const { config, accounts, policy, login, logger, stream } = services;
 
   function accountList() {
     let defaultName = null;
@@ -37,7 +37,7 @@ export default function statusTools(services) {
       capability: 'always',
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       description:
-        'Connector state: connected Telegram accounts (which is the default, which are read-only), what the settings allow and forbid, chat restrictions, file folders and limits. check: true connects to each account to verify its session.',
+        'Connector state: connected Telegram accounts (which is the default, which are read-only), what the settings allow and forbid, chat restrictions, file folders and limits, message subscriptions (subscribe_to_messages) with their Monitor URLs. check: true connects to each account to verify its session.',
       inputSchema: schema({ check: { type: 'boolean', description: 'Connect to every account and verify it is still logged in.' } }),
       handler: async (args) => {
         const list = accountList();
@@ -75,6 +75,7 @@ export default function statusTools(services) {
           voice_transcription: config.transcription.enabled
             ? `${config.transcription.service} (${config.transcription.model})`
             : `off: the user can add a key in «${SETTING_TITLES.transcribe_api_key}»`,
+          subscriptions: stream?.status().length ? stream.status() : undefined,
           proxy: config.proxy ? (config.proxy.MTProxy ? 'MTProxy' : `SOCKS${config.proxy.socksType}`) : undefined,
           test_servers: config.testServers || undefined,
           settings_problems: problems.length ? problems : undefined,

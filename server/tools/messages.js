@@ -59,7 +59,7 @@ function inputChannel(input) {
 }
 
 async function resolveUserInput(services, acc, ref) {
-  const r = await chat(services, acc, ref);
+  const r = await chat(services, acc, ref, { track: false });
   return r.input;
 }
 

@@ -113,7 +113,7 @@ test('настоящий процесс, современная эпоха: пр
   assert.deepEqual(byId['discover-1'].result.supportedVersions, MODERN_PROTOCOL_VERSIONS);
   assert.equal(byId['discover-1'].result._meta[META.serverInfo].name, 'telegram');
   assert.match(byId['discover-1'].result.instructions, /No accounts are connected yet/);
-  assert.equal(byId[2].result.tools.length, 25);
+  assert.equal(byId[2].result.tools.length, 26);
   assert.equal(byId[2].result.cacheScope, 'private');
   assert.equal(byId[3].result.resultType, 'complete');
   assert.match(err, /server\/discover: test-client 1, protocol 2026-07-28/);
@@ -188,7 +188,7 @@ test('картинки в ответе инструмента и ToolError', asy
 test('список инструментов зависит от разрешений', async () => {
   const names = (tools) => tools.map((t) => t.name);
   const def = makeServer();
-  assert.equal(def.tools.length, 25);
+  assert.equal(def.tools.length, 26);
   assert.ok(names(def.tools).includes('send_message'));
   assert.ok(!names(def.tools).includes('delete_messages'));
   assert.ok(!names(def.tools).includes('send_api_request'));
@@ -197,6 +197,8 @@ test('список инструментов зависит от разрешен
   const ro = names(readOnly.tools);
   assert.ok(ro.every((n) => !/send|edit|forward|react|mark_as_read|pin|vote|press|start_bot|inline|join/.test(n)), ro.join(','));
   assert.ok(ro.includes('get_messages') && ro.includes('download_media') && ro.includes('open_login_page'));
+  // Подписка на сообщения — чтение: доступна и без разрешений на действия.
+  assert.ok(ro.includes('subscribe_to_messages'));
 
   const all = makeServer({
     env: {
@@ -206,7 +208,7 @@ test('список инструментов зависит от разрешен
       TELEGRAM_ALLOW_RAW_API: 'true',
     },
   });
-  assert.equal(all.tools.length, 34);
+  assert.equal(all.tools.length, 35);
   for (const t of all.tools) {
     assert.ok(t.description.length > 20, t.name);
     assert.equal(t.inputSchema.type, 'object', t.name);
@@ -235,7 +237,7 @@ test('имена инструментов — действия без прист
     assert.equal(t.annotations.title, t.title, t.name);
   }
   // В текстах для модели нет старых имён с приставкой telegram_.
-  const dirs = ['../server/', '../server/tools/', '../server/tg/', '../server/login/'];
+  const dirs = ['../server/', '../server/tools/', '../server/tg/', '../server/login/', '../server/stream/'];
   for (const dir of dirs) {
     for (const file of (await readdir(new URL(dir, import.meta.url))).filter((f) => f.endsWith('.js'))) {
       const src = await readFile(new URL(dir + file, import.meta.url), 'utf8');
@@ -314,7 +316,7 @@ test('процесс сервера: stdio, в stdout только JSON-RPC', as
   assert.equal(code, 0, err);
   const replies = out.trim().split('\n').map((l) => JSON.parse(l));
   assert.deepEqual(replies.map((r) => r.id), [1, 2, 3]);
-  assert.equal(replies[1].result.tools.length, 25);
+  assert.equal(replies[1].result.tools.length, 26);
   assert.match(replies[2].result.content[0].text, /No accounts yet/);
   assert.doesNotMatch(err, /ExperimentalWarning/);
 });

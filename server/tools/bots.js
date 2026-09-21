@@ -269,7 +269,7 @@ export default function botTools(services) {
       ),
       handler: async (args) => {
         const acc = await account(services, args, 'bots');
-        const botR = await chat(services, acc, args.bot);
+        const botR = await chat(services, acc, args.bot, { track: false });
         if (!(botR.entity instanceof Api.User) || !botR.entity.bot) throw new ToolError(`${chatRef(botR.entity).title} is not a bot.`);
         const target = await chat(services, acc, args.chat ?? 'me');
         let res;

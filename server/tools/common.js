@@ -1,6 +1,9 @@
 // Общее для инструментов: схемы параметров, выбор аккаунта и чата, вывод.
 
+import { AsyncLocalStorage } from 'node:async_hooks';
+
 import { ToolError } from '../mcp.js';
+import { accountKey } from '../store.js';
 import { toToolError } from '../tg/errors.js';
 import { chatRef, formatMessage, markedIdString } from '../tg/format.js';
 import { Api, bigInt } from '../tg/lib.js';
@@ -108,6 +111,38 @@ export function reply(services, value, trim) {
 
 // ───────────── Аккаунт и чат ─────────────
 
+// Вызов инструмента: с какими чатами он работал и какие сообщения показал. По этому
+// подписки на новые сообщения добавляют к ответу то, что пришло в эти чаты тем
+// временем (см. stream/subscriptions.js, takeArrived).
+export const callScope = new AsyncLocalStorage();
+
+export function newCallScope() {
+  return { chats: new Map(), shown: new Set() };
+}
+
+function noteChat(acc, entity) {
+  const scope = callScope.getStore();
+  if (!scope || !entity) return;
+  try {
+    const chatId = markedIdString(entity);
+    scope.chats.set(`${accountKey(acc.name)}:${chatId}`, { account: acc.name, chatId });
+  } catch {
+    // сущность без id — не чат
+  }
+}
+
+function noteShown(acc, messages) {
+  const scope = callScope.getStore();
+  if (!scope) return;
+  for (const m of messages) {
+    try {
+      if (m?.peerId) scope.shown.add(`${accountKey(acc.name)}:${markedIdString(m.peerId)}:${m.id}`);
+    } catch {
+      // сообщение без чата
+    }
+  }
+}
+
 // Аккаунт для инструмента: проверяет разрешения и «только чтение».
 export async function account(services, args, capability = 'read') {
   const caps = [].concat(capability);
@@ -117,7 +152,8 @@ export async function account(services, args, capability = 'read') {
 }
 
 // Чат для инструмента: разбор ссылки, проверка «скрытых» и «только этих» чатов.
-export async function chat(services, acc, ref, { write = false, allowInvite = false } = {}) {
+// track: false — чат не цель вызова (автор в фильтре, участник для бана и т. п.).
+export async function chat(services, acc, ref, { write = false, allowInvite = false, track = true } = {}) {
   if (ref === undefined || ref === null || ref === '') throw new ToolError('"chat" is required.');
   const { policy } = services;
   const r = await resolveChat(acc, ref, { allowInvite, isVisible: (e) => policy.isVisible(e, acc) });
@@ -128,6 +164,7 @@ export async function chat(services, acc, ref, { write = false, allowInvite = fa
   }
   if (write) policy.requireWritable(r.entity, acc);
   else policy.requireVisible(r.entity, acc);
+  if (track) noteChat(acc, r.entity);
   return r;
 }
 
@@ -205,6 +242,7 @@ export async function latestMessageId(acc, input, thread) {
 }
 
 export function formatMessages(acc, messages, opts = {}) {
+  noteShown(acc, messages);
   return messages.map((m) => formatMessage(m, { lookup: acc.lookupFn, selfId: acc.selfId, ...opts }));
 }
 

@@ -2,14 +2,17 @@
 // не видит вовсе; если клиент всё же вызовет такой — обработчик откажет сам.
 
 import { isAuthError } from '../accounts.js';
+import { TOOL } from '../names.js';
 import adminTools from './admin.js';
 import botTools from './bots.js';
 import chatTools from './chats.js';
+import { callScope, newCallScope } from './common.js';
 import mediaTools from './media.js';
 import messageTools from './messages.js';
 import profileTools from './profile.js';
 import rawTools from './raw.js';
 import statusTools from './status.js';
+import streamTools from './stream.js';
 import voiceTools from './voice.js';
 
 export function allTools(services) {
@@ -17,6 +20,7 @@ export function allTools(services) {
     ...statusTools(services),
     ...chatTools(services),
     ...messageTools(services),
+    ...streamTools(services),
     ...mediaTools(services),
     ...voiceTools(services),
     ...botTools(services),
@@ -58,11 +62,40 @@ function watchAuthErrors(services, tool) {
   };
 }
 
+function appendText(out, text) {
+  const block = { type: 'text', text };
+  if (typeof out === 'string') return { content: [{ type: 'text', text: out }, block] };
+  if (Array.isArray(out?.content)) return { ...out, content: [...out.content, block] };
+  return { content: [{ type: 'text', text: String(out?.text ?? '') }, block], isError: Boolean(out?.isError) };
+}
+
+// Пока агент работает с чатом (читает, отвечает), туда могут прийти новые сообщения.
+// Если на чат есть подписка (subscribe_to_messages), пришедшее и ещё не отданное
+// монитору добавляется к ответу инструмента отдельным блоком arrived_meanwhile —
+// сигнал сразу, не дожидаясь события Monitor.
+function withArrivedMessages(services, tool) {
+  const { stream } = services;
+  if (!stream || tool.name === TOOL.subscribe) return tool;
+  return {
+    ...tool,
+    handler: (args, extra) => {
+      const scope = newCallScope();
+      return callScope.run(scope, async () => {
+        const out = await tool.handler(args, extra);
+        // Отменённый вызов ответа не получит: сообщения остаются монитору.
+        if (extra?.signal?.aborted) return out;
+        const arrived = await stream.takeArrived(scope, extra?.signal).catch(() => null);
+        return arrived ? appendText(out, arrived) : out;
+      });
+    },
+  };
+}
+
 export function buildTools(services) {
   const { policy } = services;
   return allTools(services)
     .filter((t) => [].concat(t.capability).every((c) => policy.enabled(c)))
-    .map((t) => watchAuthErrors(services, t));
+    .map((t) => watchAuthErrors(services, withArrivedMessages(services, t)));
 }
 
 // Выключенные инструменты: имя → объяснение, какую настройку включить.

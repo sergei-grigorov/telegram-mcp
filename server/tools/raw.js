@@ -123,7 +123,7 @@ export default function rawTools(services) {
         for (const cap of extraCapabilities(definition)) policy.require(cap);
         if (INVITE_METHODS.has(definition.fullName)) {
           if (!/^[\w-]{1,64}$/.test(request.hash)) throw new ToolError('params.hash: expected the hash from a t.me/+… invite link.');
-          await chat(services, acc, `https://t.me/+${request.hash}`, { allowInvite: true });
+          await chat(services, acc, `https://t.me/+${request.hash}`, { allowInvite: true, track: false });
         }
         policy.takeActions(acc.name);
         let result;
