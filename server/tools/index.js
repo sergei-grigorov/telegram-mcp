@@ -10,18 +10,23 @@ import messageTools from './messages.js';
 import profileTools from './profile.js';
 import rawTools from './raw.js';
 import statusTools from './status.js';
+import voiceTools from './voice.js';
 
 export function allTools(services) {
-  return [
+  const tools = [
     ...statusTools(services),
     ...chatTools(services),
     ...messageTools(services),
     ...mediaTools(services),
+    ...voiceTools(services),
     ...botTools(services),
     ...adminTools(services),
     ...profileTools(services),
     ...rawTools(services),
   ];
+  // Заголовок и в annotations.title — как в коннекторе Bybit (так его читают
+  // клиенты, знающие только старую версию MCP).
+  return tools.map((t) => ({ ...t, annotations: { title: t.title, ...t.annotations } }));
 }
 
 // Если Telegram сообщил, что сессия недействительна (например, её завершили с

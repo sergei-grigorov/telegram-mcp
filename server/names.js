@@ -25,6 +25,7 @@ export const TOOL = {
   votePoll: 'vote_in_poll',
   sendFile: 'send_file',
   downloadMedia: 'download_media',
+  transcribeVoice: 'transcribe_voice',
   pressButton: 'press_button',
   startBot: 'start_bot',
   inlineQuery: 'get_inline_results',

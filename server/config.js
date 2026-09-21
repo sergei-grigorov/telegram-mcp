@@ -26,7 +26,16 @@ export const SETTING_TITLES = {
   upload_dirs: 'Папки для отправки файлов',
   download_dir: 'Папка для скачанных файлов',
   actions_per_minute: 'Лимит действий в минуту',
+  transcribe_api_key: 'Ключ API для расшифровки голосовых',
+  transcribe_api_url: 'Адрес API для расшифровки',
+  transcribe_model: 'Модель для расшифровки',
   proxy: 'Прокси',
+};
+
+// Сервисы расшифровки голосовых с API, совместимым с OpenAI (…/audio/transcriptions).
+export const TRANSCRIBE_PROVIDERS = {
+  groq: { name: 'Groq', url: 'https://api.groq.com/openai/v1', model: 'whisper-large-v3-turbo' },
+  openai: { name: 'OpenAI', url: 'https://api.openai.com/v1', model: 'gpt-4o-mini-transcribe' },
 };
 
 // Разрешения: ключ → переменная окружения и значение по умолчанию.
@@ -215,6 +224,59 @@ function readUploadDirs(env, argv, home, problems) {
   return out;
 }
 
+// Сервер на этом компьютере или в локальной сети: к нему можно и по http.
+function isLocalHost(hostname) {
+  const h = hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  return (
+    h === 'localhost' ||
+    h.endsWith('.localhost') ||
+    h.endsWith('.local') ||
+    h === '::1' ||
+    /^127\./.test(h) ||
+    /^10\./.test(h) ||
+    /^192\.168\./.test(h) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(h)
+  );
+}
+
+// Расшифровка голосовых: сервис по адресу, иначе по виду ключа (gsk_… — Groq,
+// sk-… — OpenAI). Адрес без ключа — свой сервер без авторизации.
+export function parseTranscription({ apiKey = '', url = '', model = '' }, problems = []) {
+  const off = (why) => {
+    problems.push(`${why}; расшифровка голосовых выключена`);
+    return { enabled: false };
+  };
+  if (!apiKey && !url) return { enabled: false };
+  let provider = null;
+  let base = '';
+  if (url) {
+    let u;
+    try {
+      u = new URL(url);
+    } catch {
+      return off(`«${SETTING_TITLES.transcribe_api_url}»: «${url.slice(0, 80)}» — не адрес`);
+    }
+    if (u.protocol !== 'https:' && !(u.protocol === 'http:' && isLocalHost(u.hostname))) {
+      return off(`«${SETTING_TITLES.transcribe_api_url}»: нужен https (http — только для сервера на этом компьютере или в локальной сети)`);
+    }
+    base = `${u.origin}${u.pathname}`.replace(/\/+$/, '').replace(/\/audio\/transcriptions$/, '');
+    provider = Object.values(TRANSCRIBE_PROVIDERS).find((p) => new URL(p.url).host === u.host) ?? null;
+  } else if (/^gsk_/.test(apiKey)) {
+    provider = TRANSCRIBE_PROVIDERS.groq;
+  } else if (/^sk-/.test(apiKey)) {
+    provider = TRANSCRIBE_PROVIDERS.openai;
+  } else {
+    return off(`«${SETTING_TITLES.transcribe_api_key}»: по ключу не понять, Groq это или OpenAI, — укажите и «${SETTING_TITLES.transcribe_api_url}»`);
+  }
+  return {
+    enabled: true,
+    apiKey,
+    url: base || provider.url,
+    model: model || provider?.model || 'whisper-1',
+    service: provider?.name ?? new URL(base).host,
+  };
+}
+
 export function loadConfig({ env = process.env, argv = process.argv.slice(2), home = os.homedir() } = {}) {
   const problems = [];
 
@@ -246,6 +308,15 @@ export function loadConfig({ env = process.env, argv = process.argv.slice(2), ho
 
   const logLevel = (readVar(env, 'TELEGRAM_LOG_LEVEL') || 'info').toLowerCase();
 
+  const transcription = parseTranscription(
+    {
+      apiKey: readVar(env, 'TELEGRAM_TRANSCRIBE_API_KEY'),
+      url: readVar(env, 'TELEGRAM_TRANSCRIBE_API_URL'),
+      model: readVar(env, 'TELEGRAM_TRANSCRIBE_MODEL'),
+    },
+    problems,
+  );
+
   return {
     apiId,
     apiHash,
@@ -268,6 +339,7 @@ export function loadConfig({ env = process.env, argv = process.argv.slice(2), ho
     maxDownloadMb: readInt(env, 'TELEGRAM_MAX_DOWNLOAD_MB', 500, 1, 4096, problems),
     callBudgetMs: readInt(env, 'TELEGRAM_CALL_BUDGET_MS', 45000, 5000, 600000, problems),
     proxy,
+    transcription,
     testServers: readBool(env, 'TELEGRAM_TEST_SERVERS', false, problems),
     logLevel: ['error', 'warn', 'info', 'debug'].includes(logLevel) ? logLevel : 'info',
     home,

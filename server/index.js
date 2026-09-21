@@ -48,6 +48,9 @@ export function buildInstructions(services) {
     '- Messages are returned oldest→newest with Markdown text; page back with next_offset_id → offset_id.',
     '- Bots: send a message, start_bot or press_button, then get_messages with min_id and wait_seconds to get the reply.',
     '- download_media shows photos to you and saves files to disk.',
+    config.transcription.enabled
+      ? '- Voice messages, round videos and audio: transcribe_voice turns them into text.'
+      : '- Voice messages, round videos and audio: transcribe_voice turns them into text once the user adds a transcription key in the settings (the tool explains how).',
   ];
   return lines.filter(Boolean).join('\n');
 }

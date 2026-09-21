@@ -2,7 +2,6 @@
 
 import os from 'node:os';
 
-import { VERSION } from '../version.js';
 import { Logger, TelegramClient } from './lib.js';
 
 // Журнал teleproto → журнал коннектора (stderr). Сам teleproto пишет в stdout,
@@ -38,7 +37,9 @@ export function createTelegramClient({ config, session, logger }) {
     throw err;
   }
   const lang = systemLang();
-  // В «Активных сеансах» Telegram эта сессия будет видна как «Claude (telegram-mcp)».
+  // В «Устройствах» Telegram сессия видна как устройство «Claude» и приложение
+  // «<название приложения с my.telegram.org> Connector» — при названии «Claude»
+  // это «Claude Connector».
   const client = new TelegramClient(session, config.apiId, config.apiHash, {
     connectionRetries: 3,
     requestRetries: 3,
@@ -50,9 +51,9 @@ export function createTelegramClient({ config, session, logger }) {
     // Проверки номеров сессий и повторов сообщений MTProto.
     securityChecks: true,
     timeout: 10,
-    deviceModel: 'Claude (telegram-mcp)',
+    deviceModel: 'Claude',
     systemVersion: `${os.type()} ${os.release()}`,
-    appVersion: VERSION,
+    appVersion: 'Connector',
     langCode: lang,
     systemLangCode: lang,
     baseLogger: new BridgeLogger(logger),

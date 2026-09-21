@@ -72,6 +72,9 @@ export default function statusTools(services) {
             download_folder: config.downloadDir,
           },
           limits: { actions_per_minute: config.actionsPerMinute },
+          voice_transcription: config.transcription.enabled
+            ? `${config.transcription.service} (${config.transcription.model})`
+            : `off: the user can add a key in «${SETTING_TITLES.transcribe_api_key}»`,
           proxy: config.proxy ? (config.proxy.MTProxy ? 'MTProxy' : `SOCKS${config.proxy.socksType}`) : undefined,
           test_servers: config.testServers || undefined,
           settings_problems: problems.length ? problems : undefined,

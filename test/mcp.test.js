@@ -113,7 +113,7 @@ test('настоящий процесс, современная эпоха: пр
   assert.deepEqual(byId['discover-1'].result.supportedVersions, MODERN_PROTOCOL_VERSIONS);
   assert.equal(byId['discover-1'].result._meta[META.serverInfo].name, 'telegram');
   assert.match(byId['discover-1'].result.instructions, /No accounts are connected yet/);
-  assert.equal(byId[2].result.tools.length, 24);
+  assert.equal(byId[2].result.tools.length, 25);
   assert.equal(byId[2].result.cacheScope, 'private');
   assert.equal(byId[3].result.resultType, 'complete');
   assert.match(err, /server\/discover: test-client 1, protocol 2026-07-28/);
@@ -188,7 +188,7 @@ test('картинки в ответе инструмента и ToolError', asy
 test('список инструментов зависит от разрешений', async () => {
   const names = (tools) => tools.map((t) => t.name);
   const def = makeServer();
-  assert.equal(def.tools.length, 24);
+  assert.equal(def.tools.length, 25);
   assert.ok(names(def.tools).includes('send_message'));
   assert.ok(!names(def.tools).includes('delete_messages'));
   assert.ok(!names(def.tools).includes('send_api_request'));
@@ -206,7 +206,7 @@ test('список инструментов зависит от разрешен
       TELEGRAM_ALLOW_RAW_API: 'true',
     },
   });
-  assert.equal(all.tools.length, 33);
+  assert.equal(all.tools.length, 34);
   for (const t of all.tools) {
     assert.ok(t.description.length > 20, t.name);
     assert.equal(t.inputSchema.type, 'object', t.name);
@@ -229,7 +229,11 @@ test('имена инструментов — действия без прист
   assert.deepEqual([...names].sort(), Object.values(TOOL).sort());
   for (const n of names) assert.match(n, /^(?!telegram_)[a-z]+(_[a-z]+)+$/, n);
   // Claude показывает имя, а не title: title повторяет имя словами.
-  for (const t of all.tools) assert.equal(t.title.toLowerCase(), t.name.replace(/_/g, ' '), t.name);
+  for (const t of all.tools) {
+    assert.equal(t.title.toLowerCase(), t.name.replace(/_/g, ' '), t.name);
+    // Как в Bybit: заголовок и в annotations.title.
+    assert.equal(t.annotations.title, t.title, t.name);
+  }
   // В текстах для модели нет старых имён с приставкой telegram_.
   const dirs = ['../server/', '../server/tools/', '../server/tg/', '../server/login/'];
   for (const dir of dirs) {
@@ -262,10 +266,13 @@ test('ключи настроек не меняются: при обновлен
     'upload_dirs',
     'download_dir',
     'actions_per_minute',
+    'transcribe_api_key',
+    'transcribe_api_url',
+    'transcribe_model',
     'proxy',
   ]);
   const sensitive = Object.entries(manifest.user_config).filter(([, v]) => v.sensitive).map(([k]) => k);
-  assert.deepEqual(sensitive, ['api_hash', 'proxy']);
+  assert.deepEqual(sensitive, ['api_hash', 'transcribe_api_key', 'proxy']);
 });
 
 test('manifest.json перечисляет все инструменты', async () => {
@@ -307,7 +314,7 @@ test('процесс сервера: stdio, в stdout только JSON-RPC', as
   assert.equal(code, 0, err);
   const replies = out.trim().split('\n').map((l) => JSON.parse(l));
   assert.deepEqual(replies.map((r) => r.id), [1, 2, 3]);
-  assert.equal(replies[1].result.tools.length, 24);
+  assert.equal(replies[1].result.tools.length, 25);
   assert.match(replies[2].result.content[0].text, /No accounts yet/);
   assert.doesNotMatch(err, /ExperimentalWarning/);
 });
