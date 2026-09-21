@@ -1,0 +1,29 @@
+{
+  "name": "telegram-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Коннектор Claude (MCP) для Telegram: работа от имени пользовательского аккаунта (MTProto)",
+  "type": "module",
+  "main": "server/index.js",
+  "bin": {
+    "telegram-mcp": "server/index.js",
+    "telegram-mcp-accounts": "server/cli.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "login": "node server/cli.js login",
+    "accounts": "node server/cli.js list",
+    "test": "node --test \"test/*.test.js\"",
+    "icon": "node scripts/make-icon.mjs",
+    "validate": "npx -y @anthropic-ai/mcpb@2.1.2 validate manifest.json",
+    "pack": "npx -y @anthropic-ai/mcpb@2.1.2 pack . dist/telegram.mcpb",
+    "check-pack": "node scripts/check-bundle.mjs"
+  },
+  "dependencies": {
+    "qrcode-generator": "2.0.4",
+    "teleproto": "1.229.0"
+  }
+}

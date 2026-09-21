@@ -1,0 +1,334 @@
+{
+  "manifest_version": "0.3",
+  "name": "telegram",
+  "display_name": "Telegram",
+  "version": "1.0.0",
+  "description": "Telegram от имени вашего аккаунта: чаты, сообщения, поиск, файлы, боты и кнопки, вступление в чаты — с разрешениями, которые вы настраиваете сами.",
+  "long_description": "Коннектор работает как юзербот: Claude действует от имени вашего аккаунта Telegram через MTProto API (как официальные приложения), а не как бот.\n\n- **Чаты и сообщения.** Список чатов с непрочитанными и папками, чтение истории, веток и комментариев, поиск по чату и по всем чатам, отправка, ответы, правка, пересылка, реакции, закрепление, опросы.\n- **Поиск и вступление.** Поиск пользователей, ботов, групп и каналов, вступление по @username и ссылкам-приглашениям.\n- **Боты.** Нажатие кнопок, /start с параметром, inline-запросы, ожидание ответа бота.\n- **Файлы.** Отправка фото, видео, документов, голосовых и альбомов; Claude видит фотографии из чатов, файлы сохраняются на диск.\n- **Несколько аккаунтов.** Аккаунт по умолчанию и выбор аккаунта в разговоре; любой аккаунт можно сделать доступным только для чтения.\n- **Разрешения.** Каждая группа действий включается отдельно; можно скрыть чаты, оставить видимыми только нужные и ограничить, куда можно писать. Лимит действий в минуту защищает от антиспама Telegram.\n\nВход — на локальной странице по QR-коду или номеру телефона: коды и облачный пароль уходят прямо в Telegram, Claude их не видит. Сессии хранятся на этом компьютере в ~/.telegram-mcp.",
+  "author": {
+    "name": "sergei-grigorov",
+    "url": "https://github.com/sergei-grigorov"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sergei-grigorov/telegram-mcp"
+  },
+  "homepage": "https://github.com/sergei-grigorov/telegram-mcp",
+  "documentation": "https://github.com/sergei-grigorov/telegram-mcp#readme",
+  "support": "https://github.com/sergei-grigorov/telegram-mcp/issues",
+  "icon": "icon.png",
+  "keywords": [
+    "telegram",
+    "userbot",
+    "mtproto",
+    "messenger",
+    "chats",
+    "bots"
+  ],
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": [
+        "${__dirname}/server/index.js",
+        "--upload-dirs",
+        "${user_config.upload_dirs}"
+      ],
+      "env": {
+        "TELEGRAM_API_ID": "${user_config.api_id}",
+        "TELEGRAM_API_HASH": "${user_config.api_hash}",
+        "TELEGRAM_DEFAULT_ACCOUNT": "${user_config.default_account}",
+        "TELEGRAM_ALLOW_SEND": "${user_config.allow_send}",
+        "TELEGRAM_ALLOW_BOTS": "${user_config.allow_bots}",
+        "TELEGRAM_ALLOW_JOIN": "${user_config.allow_join}",
+        "TELEGRAM_ALLOW_DELETE": "${user_config.allow_delete}",
+        "TELEGRAM_ALLOW_ADMIN": "${user_config.allow_admin}",
+        "TELEGRAM_ALLOW_PROFILE": "${user_config.allow_profile}",
+        "TELEGRAM_ALLOW_RAW_API": "${user_config.allow_raw_api}",
+        "TELEGRAM_VISIBLE_CHATS": "${user_config.visible_chats}",
+        "TELEGRAM_HIDDEN_CHATS": "${user_config.hidden_chats}",
+        "TELEGRAM_WRITABLE_CHATS": "${user_config.writable_chats}",
+        "TELEGRAM_READ_ONLY_ACCOUNTS": "${user_config.read_only_accounts}",
+        "TELEGRAM_DOWNLOAD_DIR": "${user_config.download_dir}",
+        "TELEGRAM_ACTIONS_PER_MINUTE": "${user_config.actions_per_minute}",
+        "TELEGRAM_PROXY": "${user_config.proxy}"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "connector_status",
+      "description": "Аккаунты, разрешения и ограничения коннектора"
+    },
+    {
+      "name": "open_login_page",
+      "description": "Страница входа в аккаунт (QR-код или телефон) и выхода"
+    },
+    {
+      "name": "list_chats",
+      "description": "Список чатов: непрочитанные, папки, архив, фильтры"
+    },
+    {
+      "name": "list_chat_folders",
+      "description": "Папки чатов"
+    },
+    {
+      "name": "get_chat_info",
+      "description": "Сведения о пользователе, боте, группе или канале; просмотр приглашения"
+    },
+    {
+      "name": "search_chats",
+      "description": "Поиск пользователей, ботов, групп и каналов"
+    },
+    {
+      "name": "get_chat_members",
+      "description": "Участники группы или канала"
+    },
+    {
+      "name": "list_contacts",
+      "description": "Контакты"
+    },
+    {
+      "name": "get_messages",
+      "description": "Чтение сообщений, веток и комментариев; ожидание новых"
+    },
+    {
+      "name": "search_messages",
+      "description": "Поиск сообщений в чате или во всех чатах"
+    },
+    {
+      "name": "download_media",
+      "description": "Фото и файлы из сообщений, аватары"
+    },
+    {
+      "name": "send_message",
+      "description": "Отправка сообщения, ответ, отложенная отправка"
+    },
+    {
+      "name": "send_file",
+      "description": "Отправка фото, видео, документов, голосовых, альбомов"
+    },
+    {
+      "name": "edit_message",
+      "description": "Правка своего сообщения"
+    },
+    {
+      "name": "forward_messages",
+      "description": "Пересылка сообщений"
+    },
+    {
+      "name": "react_to_message",
+      "description": "Реакция на сообщение"
+    },
+    {
+      "name": "mark_as_read",
+      "description": "Отметить чат прочитанным"
+    },
+    {
+      "name": "pin_message",
+      "description": "Закрепить или открепить сообщение"
+    },
+    {
+      "name": "vote_in_poll",
+      "description": "Голосование в опросе"
+    },
+    {
+      "name": "press_button",
+      "description": "Нажатие кнопки под сообщением или на клавиатуре бота"
+    },
+    {
+      "name": "start_bot",
+      "description": "Запуск бота, в том числе по ссылке с параметром"
+    },
+    {
+      "name": "get_inline_results",
+      "description": "Inline-запрос к боту"
+    },
+    {
+      "name": "send_inline_result",
+      "description": "Отправка результата inline-запроса"
+    },
+    {
+      "name": "join_chat",
+      "description": "Вступление в группу или канал"
+    },
+    {
+      "name": "leave_chat",
+      "description": "Выход из группы или канала, удаление личного чата"
+    },
+    {
+      "name": "delete_messages",
+      "description": "Удаление сообщений"
+    },
+    {
+      "name": "manage_chat",
+      "description": "Администрирование: участники, админы, название, фото, ссылки"
+    },
+    {
+      "name": "create_chat",
+      "description": "Создание группы или канала"
+    },
+    {
+      "name": "update_profile",
+      "description": "Имя, био, username и фото своего профиля"
+    },
+    {
+      "name": "manage_contact",
+      "description": "Добавление, удаление и блокировка контактов"
+    },
+    {
+      "name": "search_api_methods",
+      "description": "Поиск методов и типов Telegram API по названию"
+    },
+    {
+      "name": "describe_api_method",
+      "description": "Параметры метода или конструкторы типа Telegram API"
+    },
+    {
+      "name": "send_api_request",
+      "description": "Прямой вызов метода Telegram API"
+    }
+  ],
+  "tools_generated": true,
+  "prompts_generated": false,
+  "compatibility": {
+    "platforms": [
+      "darwin",
+      "win32",
+      "linux"
+    ],
+    "runtimes": {
+      "node": ">=20.0.0"
+    }
+  },
+  "user_config": {
+    "api_id": {
+      "type": "string",
+      "title": "API ID",
+      "description": "Число с my.telegram.org → API development tools. Нужно, чтобы коннектор мог входить в Telegram от вашего имени.",
+      "required": true
+    },
+    "api_hash": {
+      "type": "string",
+      "title": "API Hash",
+      "description": "32 символа оттуда же, с my.telegram.org. Хранится в защищённом хранилище системы.",
+      "sensitive": true,
+      "required": true
+    },
+    "default_account": {
+      "type": "string",
+      "title": "Аккаунт по умолчанию",
+      "description": "Имя аккаунта (как вы назвали его при входе) или @username. Нужно, если подключено несколько аккаунтов; с одним можно оставить пустым. С другими аккаунтами Claude работает, когда вы явно попросите.",
+      "required": false
+    },
+    "allow_send": {
+      "type": "boolean",
+      "title": "Разрешить отправку сообщений",
+      "description": "Отправлять и редактировать сообщения, отвечать, пересылать, ставить реакции, закреплять, голосовать в опросах, отмечать прочитанным, отправлять файлы.",
+      "default": true,
+      "required": false
+    },
+    "allow_bots": {
+      "type": "boolean",
+      "title": "Разрешить работу с ботами",
+      "description": "Нажимать кнопки под сообщениями и на клавиатурах ботов, запускать ботов (/start), делать inline-запросы.",
+      "default": true,
+      "required": false
+    },
+    "allow_join": {
+      "type": "boolean",
+      "title": "Разрешить вступать в чаты",
+      "description": "Вступать в публичные группы и каналы и по ссылкам-приглашениям.",
+      "default": true,
+      "required": false
+    },
+    "allow_delete": {
+      "type": "boolean",
+      "title": "Разрешить удаление и выход из чатов",
+      "description": "Удалять сообщения, выходить из групп и каналов, удалять личные переписки.",
+      "default": false,
+      "required": false
+    },
+    "allow_admin": {
+      "type": "boolean",
+      "title": "Разрешить администрирование чатов",
+      "description": "Там, где у аккаунта есть права администратора: банить и ограничивать участников, назначать админов, менять название, описание и фото, приглашать, создавать ссылки-приглашения. А также создавать группы и каналы.",
+      "default": false,
+      "required": false
+    },
+    "allow_profile": {
+      "type": "boolean",
+      "title": "Разрешить менять профиль и контакты",
+      "description": "Менять имя, био, username и фото профиля; добавлять, удалять и блокировать контакты; отправлять свой номер боту по его кнопке.",
+      "default": false,
+      "required": false
+    },
+    "allow_raw_api": {
+      "type": "boolean",
+      "title": "Разрешить прямые вызовы Telegram API",
+      "description": "Любые методы MTProto — для того, чего нет в других инструментах. Обходит остальные ограничения коннектора, кроме закрытых навсегда (вход и безопасность аккаунта, удаление аккаунта, передача прав владельца, платежи) и скрытых чатов; удаление через них требует ещё и разрешения на удаление. Включайте, только если понимаете зачем.",
+      "default": false,
+      "required": false
+    },
+    "visible_chats": {
+      "type": "string",
+      "title": "Только эти чаты",
+      "description": "Если заполнено, Claude видит только эти чаты. Через запятую: @username, ссылки t.me (в том числе t.me/c/… и приглашения t.me/+…), числовые id (например -1001234567890; их показывает сам коннектор) или me — «Избранное».",
+      "required": false
+    },
+    "hidden_chats": {
+      "type": "string",
+      "title": "Скрытые чаты",
+      "description": "Эти чаты Claude не видит и не может использовать. Формат тот же. Чат по приглашению t.me/+… узнаётся и по id, только когда аккаунт в нём состоит, поэтому надёжнее @username или id. Служебный чат Telegram с кодами входа скрыт всегда.",
+      "required": false
+    },
+    "writable_chats": {
+      "type": "string",
+      "title": "Писать только в эти чаты",
+      "description": "Если заполнено, отправлять, пересылать, реагировать и нажимать кнопки можно только в этих чатах; читать — во всех видимых. Формат тот же.",
+      "required": false
+    },
+    "read_only_accounts": {
+      "type": "string",
+      "title": "Аккаунты только для чтения",
+      "description": "Имена аккаунтов через запятую: с ними доступно только чтение, даже если действия выше разрешены.",
+      "required": false
+    },
+    "upload_dirs": {
+      "type": "directory",
+      "title": "Папки для отправки файлов",
+      "description": "Claude может отправлять в Telegram только файлы из этих папок. Скрытые файлы и папки не отправляются никогда.",
+      "multiple": true,
+      "default": [
+        "${HOME}/Downloads",
+        "${HOME}/Desktop",
+        "${HOME}/Pictures"
+      ],
+      "required": false
+    },
+    "download_dir": {
+      "type": "directory",
+      "title": "Папка для скачанных файлов",
+      "description": "Сюда сохраняются документы, видео и аудио из сообщений.",
+      "default": "${HOME}/Downloads",
+      "required": false
+    },
+    "actions_per_minute": {
+      "type": "number",
+      "title": "Лимит действий в минуту",
+      "description": "Сколько сообщений, реакций, нажатий кнопок и других действий один аккаунт может сделать за минуту. Защищает аккаунт от антиспама Telegram.",
+      "default": 20,
+      "min": 1,
+      "max": 300,
+      "required": false
+    },
+    "proxy": {
+      "type": "string",
+      "title": "Прокси",
+      "description": "Если Telegram недоступен напрямую: socks5://логин:пароль@host:port, socks4://host:port или ссылка MTProxy (tg://proxy?server=…&port=…&secret=…). Пусто — без прокси.",
+      "sensitive": true,
+      "required": false
+    }
+  }
+}
