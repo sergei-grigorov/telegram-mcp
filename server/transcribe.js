@@ -2,7 +2,7 @@
 // звук уходит в сервис распознавания речи с API, совместимым с OpenAI
 // (POST …/audio/transcriptions): Groq, OpenAI или свой сервер Whisper.
 
-import { SETTING_TITLES } from './config.js';
+import { SETTING_TITLES, SETTINGS_PLACE } from './config.js';
 import { ToolError } from './mcp.js';
 
 // Предел Groq и OpenAI для одного файла.
@@ -48,7 +48,7 @@ function fatalError(message) {
 
 function httpError(cfg, status, detail, retryAfter) {
   const why = detail ? `: ${detail}` : '';
-  const settings = 'the Telegram extension settings in Claude Desktop';
+  const settings = SETTINGS_PLACE;
   if (status === 401) return fatalError(`${cfg.service} rejected the API key (401)${why}. The user should check «${SETTING_TITLES.transcribe_api_key}» in ${settings}.`);
   if (status === 403) return fatalError(`${cfg.service} refused the request (403)${why}. The service may be unavailable in the user's region, or the key has no access to the model.`);
   if (status === 404) return fatalError(`${cfg.service}: not found (404)${why}. Check «${SETTING_TITLES.transcribe_api_url}» and «${SETTING_TITLES.transcribe_model}» in ${settings}.`);

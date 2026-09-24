@@ -8,3 +8,5 @@
 .DS_Store
 *.tmp
 node_modules/.package-lock.json
+/Dockerfile
+/.dockerignore

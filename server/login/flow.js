@@ -53,7 +53,7 @@ const LOGIN_ERRORS = {
   CODE_INVALID: ['Неверный код из письма.', true],
   EMAIL_INVALID: ['Неверный адрес электронной почты.', true],
   EMAIL_NOT_ALLOWED: ['Этот адрес почты нельзя использовать.', true],
-  API_ID_INVALID: ['API ID или API Hash в настройках расширения неверны. Скопируйте их заново с my.telegram.org.', false],
+  API_ID_INVALID: ['API ID или API Hash в настройках коннектора неверны. Скопируйте их заново с my.telegram.org.', false],
   API_ID_PUBLISHED_FLOOD: ['Этот API ID ограничен Telegram. Создайте собственный на my.telegram.org.', false],
   SIGN_UP_REQUIRED: ['Для этого номера нет аккаунта Telegram. Создайте аккаунт в официальном приложении, затем войдите здесь.', false],
   AUTH_RESTART: ['Telegram попросил начать вход заново.', false],
@@ -73,7 +73,7 @@ function describeLoginError(err) {
     return { message: 'Telegram требует пройти проверку reCAPTCHA. Войдите по QR-коду — там её нет.', retry: false, code };
   }
   if (/TIMEOUT|ECONN|ENOTFOUND|EHOSTUNREACH|network/i.test(code)) {
-    return { message: `Нет связи с Telegram (${code}). Проверьте интернет или прокси в настройках расширения.`, retry: false, code };
+    return { message: `Нет связи с Telegram (${code}). Проверьте интернет или прокси в настройках коннектора.`, retry: false, code };
   }
   return { message: `Ошибка Telegram: ${code}`, retry: false, code };
 }

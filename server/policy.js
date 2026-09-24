@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { expandPath, PERMISSIONS, SERVICE_CHAT_ID, SETTING_TITLES } from './config.js';
+import { expandPath, PERMISSIONS, SERVICE_CHAT_ID, SETTING_TITLES, SETTINGS_PLACE } from './config.js';
 import { ToolError } from './mcp.js';
 import { markedIdString, usernamesOf } from './tg/format.js';
 import { Api } from './tg/lib.js';
@@ -40,7 +40,7 @@ export class Policy {
   require(cap) {
     if (this.enabled(cap)) return;
     throw new ToolError(
-      `Not allowed by the connector settings: "${CAPABILITIES[cap]}" is disabled. The user can enable ${settingOf(cap)} in the Telegram extension settings in Claude Desktop. Do not try to work around this.`,
+      `Not allowed by the connector settings: "${CAPABILITIES[cap]}" is disabled. The user can enable ${settingOf(cap)} in ${SETTINGS_PLACE}. Do not try to work around this.`,
     );
   }
 

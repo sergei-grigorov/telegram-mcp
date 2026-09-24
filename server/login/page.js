@@ -44,7 +44,7 @@ const BODY = `
 <main>
   <h1>Telegram для Claude</h1>
   <p class="sub">Вход в аккаунт для коннектора. Коды и облачный пароль уходят прямо в Telegram — Claude их не видит и нигде не сохраняет.</p>
-  <div id="apiWarn" class="warn hidden">Сначала заполните <b>API ID</b> и <b>API Hash</b> в настройках расширения Telegram в Claude Desktop (их выдают на my.telegram.org → API development tools), затем откройте эту страницу снова.</div>
+  <div id="apiWarn" class="warn hidden">%%API_WARN%%</div>
 
   <section>
     <h2>Подключённые аккаунты</h2>
@@ -129,7 +129,7 @@ const BODY = `
     </div>
   </section>
 
-  <footer>Страница работает только на этом компьютере и закроется сама через 30 минут без действий. Сессии хранятся в папке ~/.telegram-mcp; выйти можно здесь или в Telegram: Настройки → Устройства.</footer>
+  <footer>%%FOOTER%%</footer>
 </main>
 `;
 
@@ -290,7 +290,28 @@ const SCRIPT = `
 })();
 `;
 
-export function renderPage({ nonce }) {
+const LOCAL_TEXT = {
+  apiWarn:
+    'Сначала заполните <b>API ID</b> и <b>API Hash</b> в настройках расширения Telegram в Claude Desktop (их выдают на my.telegram.org → API development tools), затем откройте эту страницу снова.',
+  footer:
+    'Страница работает только на этом компьютере и закроется сама через 30 минут без действий. Сессии хранятся в папке ~/.telegram-mcp; выйти можно здесь или в Telegram: Настройки → Устройства.',
+};
+
+const escapeAttr = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+// remote — коннектор на сервере: { settingsUrl } страницы его настроек.
+function texts(remote) {
+  if (!remote) return LOCAL_TEXT;
+  const settings = escapeAttr(remote.settingsUrl);
+  return {
+    apiWarn: `Сначала заполните <b>API ID</b> и <b>API Hash</b> на <a href="${settings}">странице настроек коннектора</a> (их выдают на my.telegram.org → API development tools), затем откройте эту страницу снова.`,
+    footer: `Страница доступна только владельцу коннектора. Сессии хранятся на сервере коннектора; выйти можно здесь или в Telegram: Настройки → Устройства. <a href="${settings}">Настройки коннектора</a>.`,
+  };
+}
+
+export function renderPage({ nonce, remote = null }) {
+  const t = texts(remote);
+  const body = BODY.replace('%%API_WARN%%', () => t.apiWarn).replace('%%FOOTER%%', () => t.footer);
   return `<!doctype html>
 <html lang="ru">
 <head>
@@ -300,7 +321,7 @@ export function renderPage({ nonce }) {
 <title>Telegram для Claude — вход</title>
 <style nonce="${nonce}">${STYLE}</style>
 </head>
-<body>${BODY}
+<body>${body}
 <script nonce="${nonce}">${SCRIPT}</script>
 </body>
 </html>`;

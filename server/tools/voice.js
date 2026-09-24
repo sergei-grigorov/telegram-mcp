@@ -1,7 +1,7 @@
 // Расшифровка голосовых, кружков, аудио и видео в текст. Telegram делает это
 // только с Premium, поэтому звук уходит в сервис распознавания речи из настроек.
 
-import { SETTING_TITLES } from '../config.js';
+import { SETTING_TITLES, SETTINGS_PLACE } from '../config.js';
 import { ToolError } from '../mcp.js';
 import { TOOL } from '../names.js';
 import { toToolError } from '../tg/errors.js';
@@ -44,7 +44,7 @@ export default function voiceTools(services) {
       handler: async (args, { signal }) => {
         if (!t.enabled) {
           throw new ToolError(
-            `Voice transcription is not set up. The user can paste a key for Groq (free, https://console.groq.com/keys) or OpenAI into «${SETTING_TITLES.transcribe_api_key}» in the Telegram extension settings in Claude Desktop, or point «${SETTING_TITLES.transcribe_api_url}» to their own Whisper server.`,
+            `Voice transcription is not set up. The user can paste a key for Groq (free, https://console.groq.com/keys) or OpenAI into «${SETTING_TITLES.transcribe_api_key}» in ${SETTINGS_PLACE}, or point «${SETTING_TITLES.transcribe_api_url}» to their own Whisper server.`,
           );
         }
         const language = args.language?.toLowerCase();

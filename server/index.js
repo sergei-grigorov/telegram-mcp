@@ -5,7 +5,7 @@ import { realpathSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 import { AccountManager } from './accounts.js';
-import { loadConfig, SETTING_TITLES } from './config.js';
+import { loadConfig, SETTING_TITLES, SETTINGS_PLACE } from './config.js';
 import { createLogger, guardStdout } from './log.js';
 import { LoginServer, openBrowser } from './login/web.js';
 import { McpServer } from './mcp.js';
@@ -29,14 +29,14 @@ export function buildInstructions(services) {
     ? `Accounts: ${list
         .map((a) => `${a.name}${a.user?.username ? ` (@${a.user.username})` : ''}${a.name === defaultName ? ' — default' : ''}${accounts.isReadOnly(a.name) ? ' — read-only' : ''}`)
         .join(', ')}${defaultNote ? `; ${defaultNote}` : ''}. Pass "account" to act as a non-default account.`
-    : 'No accounts are connected yet: call open_login_page and let the user log in on the page that opens.';
+    : 'No accounts are connected yet: call open_login_page and let the user log in on that page.';
   const { enabled, disabled } = policy.summary();
   const lines = [
     "Telegram connector: acts as the user's own Telegram account(s) through the MTProto API (a userbot), not as a bot.",
     accountsLine,
     `Allowed by the user's settings: ${[CAPABILITIES.read, ...enabled.map((e) => e.allows)].join('; ')}.`,
     disabled.length
-      ? `Disabled: ${disabled.map((d) => `${d.allows} (setting «${d.setting}»)`).join('; ')}. If a request needs a disabled action, tell the user which setting to enable in the Telegram extension settings in Claude Desktop; do not look for workarounds.`
+      ? `Disabled: ${disabled.map((d) => `${d.allows} (setting «${d.setting}»)`).join('; ')}. If a request needs a disabled action, tell the user which setting to enable in ${SETTINGS_PLACE}; do not look for workarounds.`
       : '',
     config.chats.visible.length ? 'Only some chats are visible (setting «Только эти чаты»).' : '',
     config.chats.writable.length ? 'Writing is allowed only in some chats (setting «Писать только в эти чаты»).' : '',
@@ -48,7 +48,7 @@ export function buildInstructions(services) {
     '- Chats are referenced by id from results (e.g. -1001234567890), @username, t.me link, "me" (Saved Messages) or exact title. list_chats shows the chat list with unread counters; search_chats finds new chats.',
     '- Messages are returned oldest→newest with Markdown text; page back with next_offset_id → offset_id.',
     '- Bots: send a message, start_bot or press_button, then get_messages with min_id and wait_seconds to get the reply.',
-    '- New messages as they arrive: subscribe_to_messages gives a local WebSocket URL for the Monitor tool (Claude Code); each event is a JSON batch of new messages. New messages in a subscribed chat that arrive while you work with it are added to tool results as arrived_meanwhile.',
+    '- New messages as they arrive: subscribe_to_messages gives a WebSocket URL for the Monitor tool (Claude Code); each event is a JSON batch of new messages. New messages in a subscribed chat that arrive while you work with it are added to tool results as arrived_meanwhile.',
     '- download_media shows photos to you and saves files to disk.',
     config.transcription.enabled
       ? '- Voice messages, round videos and audio: transcribe_voice turns them into text.'
@@ -57,8 +57,12 @@ export function buildInstructions(services) {
   return lines.filter(Boolean).join('\n');
 }
 
-export function createServer({ env = process.env, argv = process.argv.slice(2), logger, createClient, openUrl } = {}) {
+// remote — коннектор на сервере: { publicUrl } — его адрес для Claude (страница входа,
+// потоки для Monitor и ссылки на скачанные файлы строятся от него).
+export function createServer({ env = process.env, argv = process.argv.slice(2), logger, createClient, openUrl, remote = null } = {}) {
   const config = loadConfig({ env, argv });
+  const publicUrl = remote?.publicUrl ? remote.publicUrl.replace(/\/+$/, '') : null;
+  config.remote = publicUrl ? { publicUrl, filesUrl: `${publicUrl}/files` } : null;
   const log = logger ?? createLogger({ level: config.logLevel });
   const clientFactory =
     createClient ??
@@ -66,8 +70,8 @@ export function createServer({ env = process.env, argv = process.argv.slice(2), 
       createTelegramClient({ config: { ...config, testServers: testServers ?? config.testServers }, session, logger: log }));
   const accounts = new AccountManager({ config, logger: log, createClient: clientFactory });
   const policy = new Policy(config);
-  const login = new LoginServer({ config, accounts, createClient: clientFactory, logger: log });
-  const stream = new MessageSubscriptions({ config, accounts, policy, logger: log });
+  const login = new LoginServer({ config, accounts, createClient: clientFactory, logger: log, publicUrl });
+  const stream = new MessageSubscriptions({ config, accounts, policy, logger: log, publicUrl });
   const services = { config, logger: log, accounts, policy, login, stream, openUrl: openUrl ?? openBrowser };
   const tools = buildTools(services);
   const server = new McpServer({

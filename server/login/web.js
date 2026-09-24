@@ -1,6 +1,9 @@
 // Локальная страница входа и управления аккаунтами: http://127.0.0.1:<порт>/<токен>/.
 // Слушает только 127.0.0.1, требует секретный токен в адресе, проверяет Host и
 // Origin (защита от DNS rebinding и чужих страниц), закрывается после простоя.
+// У коннектора на сервере (publicUrl) своего порта нет: страница открывается по адресу
+// <путь-коннектора>/accounts/ через общий HTTP-сервер (handleMounted), а пускает на неё
+// шлюз — только владельца, вошедшего по паролю.
 
 import { spawn } from 'node:child_process';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
@@ -77,8 +80,9 @@ function sameToken(a, b) {
 }
 
 export class LoginServer {
-  constructor({ config, accounts, createClient, logger, checkPassword }) {
+  constructor({ config, accounts, createClient, logger, checkPassword, publicUrl = null }) {
     this.config = config;
+    this.publicUrl = publicUrl ? publicUrl.replace(/\/+$/, '') : null;
     this.accounts = accounts;
     this.createClient = createClient;
     this.logger = logger;
@@ -92,10 +96,12 @@ export class LoginServer {
   }
 
   get url() {
+    if (this.publicUrl) return `${this.publicUrl}/accounts/`;
     return this.server ? `http://127.0.0.1:${this.port}/${this.token}/` : null;
   }
 
   async start() {
+    if (this.publicUrl) return this.url;
     if (this.server) {
       this.touch();
       return this.url;
@@ -211,11 +217,25 @@ export class LoginServer {
       res.writeHead(302, { Location: `/${this.token}/`, 'Cache-Control': 'no-store' });
       return res.end();
     }
-    const route = `${req.method} /${parts.slice(1).join('/')}`;
+    return this.dispatch(req, res, `${req.method} /${parts.slice(1).join('/')}`);
+  }
 
+  // Коннектор на сервере: rest — путь после <путь-коннектора>/accounts. Владельца и
+  // происхождение запроса (Origin) уже проверили шлюз и HTTP-сервер коннектора.
+  async handleMounted(req, res, rest) {
+    // Без завершающего «/» относительные адреса api/… страницы не сработают.
+    if (req.method === 'GET' && rest === '') {
+      res.writeHead(302, { Location: this.url, 'Cache-Control': 'no-store' });
+      return res.end();
+    }
+    return this.dispatch(req, res, `${req.method} ${rest || '/'}`);
+  }
+
+  async dispatch(req, res, route) {
     if (route === 'GET /') {
       const nonce = randomBytes(16).toString('base64');
-      return this.send(res, 200, renderPage({ nonce }), 'text/html; charset=utf-8', {
+      const remote = this.publicUrl ? { settingsUrl: `${this.publicUrl}/settings` } : null;
+      return this.send(res, 200, renderPage({ nonce, remote }), 'text/html; charset=utf-8', {
         'Content-Security-Policy': `default-src 'none'; script-src 'nonce-${nonce}'; style-src 'nonce-${nonce}'; img-src data:; connect-src 'self'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'`,
       });
     }

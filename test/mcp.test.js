@@ -49,7 +49,8 @@ test('современная эпоха: server/discover, список и выз
   assert.deepEqual(d.result, {
     resultType: 'complete',
     supportedVersions: MODERN_PROTOCOL_VERSIONS,
-    capabilities: { tools: { listChanged: false } },
+    // Пустые списки промптов и ресурсов сервер отдаёт — значит, объявляет их.
+    capabilities: { tools: { listChanged: false }, prompts: { listChanged: false }, resources: { listChanged: false } },
     instructions: 'x',
     ttlMs: 0,
     cacheScope: 'private',
@@ -71,7 +72,7 @@ test('современная эпоха: ошибки конверта и отк
   assert.deepEqual(unsupported.error, {
     code: UNSUPPORTED_PROTOCOL_VERSION,
     message: 'Unsupported protocol version',
-    data: { supported: [...MODERN_PROTOCOL_VERSIONS, ...LEGACY_PROTOCOL_VERSIONS], requested: '2099-01-01' },
+    data: { supported: MODERN_PROTOCOL_VERSIONS, requested: '2099-01-01' },
   });
   const bare = await s.handle({ jsonrpc: '2.0', id: 2, method: 'server/discover' });
   assert.equal(bare.error.code, -32602);

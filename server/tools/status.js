@@ -1,7 +1,7 @@
 // Состояние коннектора и вход в аккаунты.
 
 import { maskPhone } from '../accounts.js';
-import { SETTING_TITLES } from '../config.js';
+import { SETTING_TITLES, SETTINGS_PLACE } from '../config.js';
 import { ToolError } from '../mcp.js';
 import { TOOL } from '../names.js';
 import { LAYER, TELEPROTO_VERSION } from '../tg/lib.js';
@@ -57,9 +57,9 @@ export default function statusTools(services) {
         const problems = [...config.problems, ...accounts.inviteProblems()];
         return reply(services, {
           connector: `telegram-mcp ${VERSION} (teleproto ${TELEPROTO_VERSION}, API layer ${LAYER})`,
-          api_credentials: config.hasApiCredentials ? 'set' : `missing: fill «${SETTING_TITLES.api_id}» and «${SETTING_TITLES.api_hash}» in the extension settings`,
+          api_credentials: config.hasApiCredentials ? 'set' : `missing: fill «${SETTING_TITLES.api_id}» and «${SETTING_TITLES.api_hash}» in ${SETTINGS_PLACE}`,
           accounts: list,
-          hint: list.length ? undefined : 'No accounts yet: call open_login_page and let the user log in on the page that opens.',
+          hint: list.length ? undefined : 'No accounts yet: call open_login_page and let the user log in on that page.',
           permissions: policy.summary(),
           chats: {
             only_these_visible: lists(config.chats.visible),
@@ -89,24 +89,34 @@ export default function statusTools(services) {
       capability: 'always',
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       description:
-        'Open a local page (in the browser) where the user logs in to a Telegram account by QR code or phone number + code (+ 2FA password), or logs out of connected accounts. Codes and passwords go straight to Telegram, never through this chat — never ask the user for them here. Call when the user wants to add or re-login an account, or when a tool says the account is logged out.',
+        'Give the user the page where they log in to a Telegram account by QR code or phone number + code (+ 2FA password), or log out of connected accounts: a local page opened in the browser, or — for a connector on a server — a link that opens after signing in with the connector owner password. Codes and passwords go straight to Telegram, never through this chat — never ask the user for them here. Call when the user wants to add or re-login an account, or when a tool says the account is logged out.',
       inputSchema: schema({
         account: { type: 'string', maxLength: 40, description: 'Suggested name for the account (e.g. "work"); the user can change it on the page.' },
-        open_browser: { type: 'boolean', description: 'Open the page in the default browser (default true).' },
+        open_browser: { type: 'boolean', description: 'Local connector: open the page in the default browser (default true).' },
       }),
       handler: async (args) => {
         if (!config.hasApiCredentials) {
           throw new ToolError(
-            `API ID and API Hash are not set. Ask the user to create them at https://my.telegram.org (API development tools) and fill «${SETTING_TITLES.api_id}» and «${SETTING_TITLES.api_hash}» in the Telegram extension settings in Claude Desktop.`,
+            `API ID and API Hash are not set. Ask the user to create them at https://my.telegram.org (API development tools) and fill «${SETTING_TITLES.api_id}» and «${SETTING_TITLES.api_hash}» in ${SETTINGS_PLACE}.`,
           );
         }
         const base = await login.start();
         const url = args.account ? `${base}#account=${encodeURIComponent(args.account)}` : base;
+        const how =
+          'The user logs in there with a QR code (Telegram on the phone → Settings → Devices → Link Desktop Device) or with the phone number and the code from Telegram, plus the cloud password if set. Do not ask for codes or passwords in the chat.';
+        if (config.remote) {
+          return [
+            `Login page: ${url}`,
+            'Give this link to the user: it opens after signing in with the owner password of this connector server (the one used when the connector was added to Claude).',
+            how,
+            'When the user says they are done, call connector_status to confirm the account is connected.',
+          ].join('\n');
+        }
         const opened = args.open_browser === false ? false : services.openUrl(url, logger);
         return [
           `Login page: ${url}`,
           opened ? 'It has been opened in the browser.' : 'Give this link to the user to open in a browser on this computer.',
-          'The user logs in there with a QR code (Telegram on the phone → Settings → Devices → Link Desktop Device) or with the phone number and the code from Telegram, plus the cloud password if set. Do not ask for codes or passwords in the chat.',
+          how,
           'When the user says they are done, call connector_status to confirm the account is connected. The page works only on this computer and closes after 30 minutes of inactivity.',
         ].join('\n');
       },

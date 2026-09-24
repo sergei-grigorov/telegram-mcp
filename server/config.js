@@ -7,6 +7,14 @@
 import os from 'node:os';
 import path from 'node:path';
 
+// Где пользователь меняет настройки: окно расширения в Claude Desktop, а у коннектора
+// на сервере — страница его настроек (setSettingsPlace в serve.js).
+export let SETTINGS_PLACE = 'the Telegram extension settings in Claude Desktop';
+
+export function setSettingsPlace(place) {
+  SETTINGS_PLACE = place;
+}
+
 // Названия настроек так, как их видит пользователь в окне настроек расширения.
 export const SETTING_TITLES = {
   api_id: 'API ID',

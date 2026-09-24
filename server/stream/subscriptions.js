@@ -250,7 +250,8 @@ export function eventItem(f, textMax = TEXT_MAX) {
 }
 
 export class MessageSubscriptions {
-  constructor({ config, accounts, policy, logger, timing = {}, now = () => Date.now() }) {
+  // publicUrl — коннектор на сервере: адреса потоков публичные (см. StreamServer).
+  constructor({ config, accounts, policy, logger, timing = {}, now = () => Date.now(), publicUrl = null }) {
     this.config = config;
     this.accounts = accounts;
     this.policy = policy;
@@ -262,7 +263,7 @@ export class MessageSubscriptions {
     this.seq = 0;
     this.sweepTimer = null;
     this.stopped = false;
-    this.server = new StreamServer({ logger, onConnection: (token, conn) => this.connect(token, conn) });
+    this.server = new StreamServer({ logger, onConnection: (token, conn) => this.connect(token, conn), publicUrl });
     // Аккаунт подключился заново, вышел или удалён — подписки узнают сразу, а не
     // при следующей проверке.
     const safely = (fn) => (...a) => {
